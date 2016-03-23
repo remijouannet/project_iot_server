@@ -91,8 +91,6 @@ int while_interface(int sockfd){
 
         len = recv(sockfd, buffer, sizeof(buffer), 0);
 
-        printf("%lu %s \n", len, buffer);
-
         if( len <= 0 ){
             close(sockfd);
             printf("recv error\n");
