@@ -12,8 +12,11 @@
 
 #include "cpu_usage.h"
 #include "mem_info.h"
+#include "protocole.h"
 
 #define BUFFER 500
+#define PASSWORD "OKLM92IZI"
+
 
 int socket_server(int port){
     int sockfd, new_fd, pid;
@@ -81,11 +84,17 @@ int while_interface(int sockfd){
     printf("sockfd %d\n", sockfd);
 
     uint8_t buffer[BUFFER] = {0};
-    intmax_t len;
-    double cpu_usage;
-    double mem_usage;
-    double mem_total;
+    intmax_t len = 0;
+    double cpu_usage = 0;
+    double mem_usage = 0;
+    double mem_total = 0;
 	
+    char cpu_usage_str[20] = {0};
+    char mem_usage_str[20] = {0};
+    char mem_total_str[20] = {0};
+	
+    envoi query = {0}; 
+
     while(1){
         memset(&buffer, 0, sizeof(buffer));
 
@@ -97,15 +106,35 @@ int while_interface(int sockfd){
             exit(1);
         }
 
-        if(memcmp(buffer, "1", 1) == 0){
+        parse_query((char*)&buffer, &query); 
+
+        if(query.query == 1 && 
+                strcmp(PASSWORD, (const char*)&query.password) == 0){
+
             mem_usage = getMemoryUsage();
-            len = sprintf((char*)buffer, "1 %f", mem_usage);
-        }else if(memcmp(buffer, "2", 1) == 0){
+            sprintf((char *)&mem_usage_str, "%f", mem_usage);
+
+            send_reponse((char *)&buffer, (char *)&mem_usage_str, 
+                    query.query, (int *)&len);
+
+        }else if(query.query == 2 && 
+                strcmp(PASSWORD, (const char*)&query.password) == 0){
+
             cpu_usage = getCurrentValue();
-            len = sprintf((char*)buffer, "2 %f", cpu_usage);
-        }else if(memcmp(buffer, "3", 1) == 0){
+            sprintf((char *)&cpu_usage_str, "%f", cpu_usage);
+
+            send_reponse((char *)&buffer, (char *)&cpu_usage_str, 
+                    query.query,(int *)&len);
+
+        }else if(query.query == 3 && 
+                strcmp(PASSWORD, (const char*)&query.password) == 0){
+
             mem_total = getMemoryTotal();
-            len = sprintf((char*)buffer, "3 %f", mem_total);
+            sprintf((char *)&mem_total_str, "%f", mem_total);
+
+            send_reponse((char *)&buffer, (char *)&mem_total_str, 
+                    query.query, (int *)&len);
+
         }
 
         if (send(sockfd, buffer, len, 0) < 0){ 
@@ -129,6 +158,9 @@ int main(int argc, char *argv[]) {
 	printf("starting\n");
 
     init();
+
+    test1();
+
     printf("%f\n", getCurrentValue());
     sleep(1);
     printf("%f\n", getCurrentValue());
